@@ -15,6 +15,7 @@ import {
   toggleAgent,
   updateAgent,
 } from './store'
+import { listDiscovered } from './discovery'
 import { buildInventory } from './inventory'
 import { readTable, saveTable } from './table'
 
@@ -38,6 +39,8 @@ app.use('/api/*', async (c, next) => {
 })
 
 app.get('/api/projects', async (c) => c.json(await listProjects()))
+
+app.get('/api/projects/discovered', async (c) => c.json(await listDiscovered()))
 
 app.post('/api/projects', async (c) => {
   const { path } = await c.req.json<{ path: string }>()

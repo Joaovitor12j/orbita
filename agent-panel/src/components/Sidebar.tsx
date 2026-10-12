@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react'
 import { GLOBAL_SCOPE, type Agent, type Project } from '../../shared/types'
-import type { ItemKind } from '../../shared/inventory'
+import type { DiscoveredProject, ItemKind } from '../../shared/inventory'
 import { SECTIONS } from './inventory/meta'
 import { CloseIcon, FolderIcon, GlobeIcon, MoonIcon, OrbitIcon, PlusIcon, SunIcon } from './Icons'
 
 interface Props {
   agents: Agent[]
   projects: Project[]
+  discovered: DiscoveredProject[]
   scope: string
   section: ItemKind
   /** Contagem por seção no escopo atual. */
@@ -20,10 +21,20 @@ interface Props {
 }
 
 export const ALL_SCOPE = 'all'
+const SUGGESTED_LIMIT = 5
 
-export function Sidebar({ agents, projects, scope, section, sectionCounts, theme, onScope, onSection, onAddProject, onRemoveProject, onToggleTheme }: Props) {
+export function Sidebar({ agents, projects, discovered, scope, section, sectionCounts, theme, onScope, onSection, onAddProject, onRemoveProject, onToggleTheme }: Props) {
   const [adding, setAdding] = useState(false)
   const [path, setPath] = useState('')
+  const [showAll, setShowAll] = useState(false)
+  const [adopting, setAdopting] = useState<string | null>(null)
+  const suggested = showAll ? discovered : discovered.slice(0, SUGGESTED_LIMIT)
+
+  const adopt = async (target: string) => {
+    setAdopting(target)
+    await onAddProject(target)
+    setAdopting(null)
+  }
 
   const count = (id: string) => agents.filter((a) => a.scopeId === id).length
 
@@ -100,6 +111,38 @@ export function Sidebar({ agents, projects, scope, section, sectionCounts, theme
         ))}
 
         {!projects.length && !adding && <p className="hint">Nenhum projeto registrado.</p>}
+
+        {discovered.length > 0 && (
+          <>
+            <div className="section-title" title="Projetos que o Claude Code já abriu nesta máquina">
+              <span>Sugeridos</span>
+              <span className="scope-count">{discovered.length}</span>
+            </div>
+            {suggested.map((project) => (
+              <div key={project.path} className="scope-row suggested">
+                <span className="scope" title={project.path}>
+                  <FolderIcon />
+                  <span className="scope-label">{project.name}</span>
+                  {project.mcpCount > 0 && <span className="scope-count">{project.mcpCount} MCP</span>}
+                </span>
+                <button
+                  className="icon-btn add"
+                  disabled={adopting === project.path}
+                  onClick={() => void adopt(project.path)}
+                  aria-label={`Registrar ${project.name}`}
+                  title={`Registrar ${project.path}`}
+                >
+                  <PlusIcon width={14} height={14} />
+                </button>
+              </div>
+            ))}
+            {discovered.length > SUGGESTED_LIMIT && (
+              <button className="more-link" onClick={() => setShowAll((v) => !v)}>
+                {showAll ? 'Mostrar menos' : `Ver todos (${discovered.length})`}
+              </button>
+            )}
+          </>
+        )}
       </nav>
 
       <button className="theme-toggle" onClick={onToggleTheme}>

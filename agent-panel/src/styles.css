@@ -90,6 +90,7 @@ button {
   background: var(--surface);
   backdrop-filter: blur(18px);
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .brand {
@@ -945,3 +946,12 @@ textarea.mono {
   margin: 0; padding: 14px; max-height: 46vh; overflow: auto; white-space: pre-wrap; word-break: break-word;
   font-family: var(--mono); font-size: 12px; line-height: 1.6; border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
 }
+
+/* Projetos sugeridos */
+.scope-row.suggested .scope { cursor: default; }
+.scope-row.suggested .scope-label { color: var(--text-dim); }
+.scope-row.suggested:hover .scope-label { color: var(--text); }
+.scope-row .add { opacity: 0; margin-right: 4px; }
+.scope-row:hover .add, .scope-row .add:focus-visible { opacity: 1; }
+.more-link { margin: 4px 10px; padding: 0; font-size: 12px; color: var(--text-faint); text-align: left; }
+.more-link:hover { color: var(--text); text-decoration: underline; }

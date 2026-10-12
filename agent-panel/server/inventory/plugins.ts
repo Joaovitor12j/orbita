@@ -4,7 +4,7 @@ import type { Item } from '../../shared/inventory'
 import { CLAUDE_DIR } from '../store'
 import { readAgentFiles, readCommands } from './commands'
 import { readPluginHooks } from './hooks'
-import { readPluginMcp } from './mcp'
+import { readJson, readPluginMcp, type McpContext } from './mcp'
 import { itemId, readSkills } from './skills'
 
 interface Installation {
@@ -25,14 +25,6 @@ interface Manifest {
   agents?: string | string[]
   hooks?: unknown
   mcpServers?: unknown
-}
-
-const readJson = async <T,>(file: string): Promise<T | null> => {
-  try {
-    return JSON.parse(await fs.readFile(file, 'utf8')) as T
-  } catch {
-    return null
-  }
 }
 
 type EnabledMap = Record<string, boolean> | undefined
@@ -56,14 +48,68 @@ export interface PluginScan {
   contents: Item[]
 }
 
-/** Plugins instalados e o que cada um traz (skills, comandos, agentes). */
-export async function readPlugins(registered: { path: string }[], projectPath?: string | null): Promise<PluginScan> {
+interface ScanArgs {
+  id: string
+  name: string
+  installPath: string
+  enabled: boolean
+  /** Rótulo dos itens que o plugin traz (ex.: `caveman`, `caveman (projeto)`). */
+  origin: string
+  /** Rótulo do próprio plugin na lista (Global, Projeto X, Conta). */
+  scopeLabel: string
+  meta: Record<string, unknown>
+}
+
+// Lê o que um plugin traz: skills, comandos, agentes, hooks e MCPs.
+async function scanPlugin(a: ScanArgs, ctx: McpContext): Promise<{ plugin: Item; contents: Item[] }> {
+  const manifest = (await readJson<Manifest>(path.join(a.installPath, '.claude-plugin', 'plugin.json'))) ?? {}
+  const raw = manifest as Record<string, unknown>
+  const warnings = (await fs.access(a.installPath).then(() => true, () => false)) ? [] : ['Pasta de instalação não encontrada']
+
+  const dirs = (field: 'skills' | 'commands' | 'agents') => {
+    const declared = [manifest[field] ?? []].flat().filter((d): d is string => typeof d === 'string')
+    return [...new Set([field, ...declared].map((d) => path.resolve(a.installPath, d)))].filter((d) => d.startsWith(a.installPath))
+  }
+  const roots = (field: 'skills' | 'commands' | 'agents') =>
+    dirs(field).map((dir) => ({ dir, source: 'plugin' as const, origin: a.origin, prefix: a.name }))
+
+  const [skills, commands, agents, hooks, mcps] = await Promise.all([
+    readSkills(roots('skills')),
+    readCommands(roots('commands')),
+    readAgentFiles(roots('agents')),
+    readPluginHooks(a.installPath, raw, a.origin, a.enabled),
+    readPluginMcp(a.installPath, raw, a.name, a.origin, a.enabled, ctx),
+  ])
+
+  const plugin: Item = {
+    id: a.id,
+    kind: 'plugin',
+    name: a.name,
+    description: manifest.description ?? '',
+    source: 'plugin',
+    origin: a.scopeLabel,
+    path: a.installPath,
+    enabled: a.enabled,
+    ...(warnings.length ? { warnings } : {}),
+    meta: {
+      ...a.meta,
+      version: manifest.version ?? a.meta.version,
+      author: manifest.author?.name,
+      counts: { skills: skills.length, commands: commands.length, agents: agents.length, hooks: hooks.length, mcp: mcps.length },
+    },
+  }
+  const contents = [...skills, ...commands, ...agents, ...hooks].map((item) => ({ ...item, enabled: a.enabled, meta: { ...item.meta, plugin: a.name } }))
+  // Os MCPs já trazem o próprio estado (desligado no projeto, autenticação pendente).
+  return { plugin, contents: [...contents, ...mcps] }
+}
+
+/** Plugins instalados e o que cada um traz. */
+export async function readPlugins(projectPath: string | null | undefined, ctx: McpContext): Promise<PluginScan> {
   const registry = await readJson<{ plugins?: Record<string, Installation[]> }>(
     path.join(CLAUDE_DIR, 'plugins', 'installed_plugins.json'),
   )
   const userLayers = await enabledIn(CLAUDE_DIR)
-  const plugins: Item[] = []
-  const contents: Item[] = []
+  const result: PluginScan = { plugins: [], contents: [] }
   const seen = new Set<string>()
 
   for (const [key, installs] of Object.entries(registry?.plugins ?? {})) {
@@ -74,53 +120,76 @@ export async function readPlugins(registered: { path: string }[], projectPath?: 
       // Com um projeto selecionado, plugins de outros projetos ficam de fora.
       if (projectPath !== undefined && isProject && install.projectPath !== projectPath) continue
 
-      const manifest = (await readJson<Manifest>(path.join(installPath, '.claude-plugin', 'plugin.json'))) ?? {}
       const [name, marketplace = ''] = key.split('@')
       const layers = isProject ? [...userLayers, ...(await enabledIn(path.join(install.projectPath!, '.claude')))] : userLayers
-      const enabled = resolveEnabled(key, layers)
-      const origin = isProject ? `${name} (${path.basename(install.projectPath!)})` : (name as string)
-      const warnings = (await fs.access(installPath).then(() => true, () => false)) ? [] : ['Pasta de instalação não encontrada']
-
-      const dirs = (field: 'skills' | 'commands' | 'agents') => {
-        const declared = [manifest[field] ?? []].flat().filter((d): d is string => typeof d === 'string')
-        return [...new Set([field, ...declared].map((d) => path.resolve(installPath, d)))].filter((d) => d.startsWith(installPath))
-      }
-      const roots = (field: 'skills' | 'commands' | 'agents') =>
-        dirs(field).map((dir) => ({ dir, source: 'plugin' as const, origin, prefix: name }))
-      const [skills, commands, agents, hooks, mcps] = await Promise.all([
-        readSkills(roots('skills')),
-        readCommands(roots('commands')),
-        readAgentFiles(roots('agents')),
-        readPluginHooks(installPath, manifest as Record<string, unknown>, origin, enabled),
-        readPluginMcp(installPath, manifest as Record<string, unknown>, origin, enabled),
-      ])
-
-      plugins.push({
-        id: itemId('plugin', install.scope ?? 'user', `${key}:${install.projectPath ?? ''}`),
-        kind: 'plugin',
-        name: name as string,
-        description: manifest.description ?? '',
-        source: 'plugin',
-        origin: isProject ? `Projeto ${path.basename(install.projectPath!)}` : 'Global',
-        path: installPath,
-        enabled,
-        ...(warnings.length ? { warnings } : {}),
-        meta: {
-          key,
-          marketplace,
-          scope: install.scope ?? 'user',
-          projectPath: install.projectPath,
-          version: manifest.version ?? install.version,
-          author: manifest.author?.name,
-          counts: { skills: skills.length, commands: commands.length, agents: agents.length, hooks: hooks.length, mcp: mcps.length },
+      const scanned = await scanPlugin(
+        {
+          id: itemId('plugin', install.scope ?? 'user', `${key}:${install.projectPath ?? ''}`),
+          name: name as string,
+          installPath,
+          enabled: resolveEnabled(key, layers),
+          origin: isProject ? `${name} (${path.basename(install.projectPath!)})` : (name as string),
+          scopeLabel: isProject ? `Projeto ${path.basename(install.projectPath!)}` : 'Global',
+          meta: { key, marketplace, scope: install.scope ?? 'user', projectPath: install.projectPath, version: install.version },
         },
-      })
-
+        ctx,
+      )
+      result.plugins.push(scanned.plugin)
       // O mesmo diretório instalado em dois escopos entra uma vez só.
       if (seen.has(installPath)) continue
       seen.add(installPath)
-      for (const item of [...skills, ...commands, ...agents, ...hooks, ...mcps]) contents.push({ ...item, enabled, meta: { ...item.meta, plugin: key } })
+      result.contents.push(...scanned.contents)
     }
   }
-  return { plugins, contents }
+  return result
+}
+
+interface SyncedManifest {
+  plugins?: { pluginId?: string; version?: string }[]
+}
+interface SyncedMeta {
+  server_plugin_id?: string
+  marketplace_name?: string
+  installation_preference?: string
+}
+
+/** Plugins que a conta claude.ai sincroniza para a máquina (~/.claude/plugins/synced/<org>_<conta>/<plugin>). */
+export async function readSyncedPlugins(ctx: McpContext): Promise<PluginScan> {
+  const base = path.join(CLAUDE_DIR, 'plugins', 'synced')
+  const accounts = await fs.readdir(base, { withFileTypes: true }).catch(() => [])
+  const result: PluginScan = { plugins: [], contents: [] }
+
+  for (const account of accounts) {
+    if (!account.isDirectory() || account.name.startsWith('.')) continue
+    const root = path.join(base, account.name)
+    const manifest = await readJson<SyncedManifest>(path.join(root, 'manifest.json'))
+    const entries = await fs.readdir(root, { withFileTypes: true }).catch(() => [])
+
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue
+      const installPath = path.join(root, entry.name)
+      const pluginJson = await readJson<Manifest>(path.join(installPath, '.claude-plugin', 'plugin.json'))
+      if (!pluginJson) continue
+      const meta = await readJson<SyncedMeta>(path.join(root, `${entry.name}.meta.json`))
+      const name = pluginJson.name ?? entry.name
+      const preference = meta?.installation_preference ?? ''
+      const listed = manifest?.plugins?.find((p) => p.pluginId === meta?.server_plugin_id)
+
+      const scanned = await scanPlugin(
+        {
+          id: itemId('plugin', 'account', installPath),
+          name,
+          installPath,
+          enabled: preference !== 'not_available',
+          origin: name,
+          scopeLabel: 'Conta claude.ai',
+          meta: { key: name, marketplace: meta?.marketplace_name, scope: 'account', installation: preference, version: listed?.version },
+        },
+        ctx,
+      )
+      result.plugins.push(scanned.plugin)
+      result.contents.push(...scanned.contents)
+    }
+  }
+  return result
 }

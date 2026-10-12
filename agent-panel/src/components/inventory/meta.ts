@@ -35,6 +35,8 @@ export const META_LABELS: Record<string, string> = {
   author: 'Autor',
   marketplace: 'Marketplace',
   key: 'Identificador',
+  fullName: 'Nome no Claude Code',
+  installation: 'Instalação',
   projectPath: 'Projeto de instalação',
   counts: 'Conteúdo',
   tools: 'Ferramentas',
@@ -54,5 +56,7 @@ export const META_VALUES: Record<string, Record<string, string>> = {
     local: 'Local ao projeto (~/.claude.json)',
     project: 'Compartilhado no projeto (.mcp.json)',
     plugin: 'Plugin',
+    connector: 'Conector da conta claude.ai',
+    account: 'Conta claude.ai (sincronizado)',
   },
 }

@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GLOBAL_SCOPE, TABLE_SEATS, type Activity, type Agent, type AgentInput, type Project } from '../shared/types'
-import type { Item, ItemKind } from '../shared/inventory'
+import type { DiscoveredProject, Item, ItemKind } from '../shared/inventory'
 import { api } from './api'
 import { AgentCard } from './components/AgentCard'
 import { AgentDrawer, type ScopeOption } from './components/AgentDrawer'
@@ -49,6 +49,7 @@ const initialTheme = (): Theme => {
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [projects, setProjects] = useState<Project[]>([])
+  const [discovered, setDiscovered] = useState<DiscoveredProject[]>([])
   const [loading, setLoading] = useState(true)
   const [scope, setScope] = useState(ALL_SCOPE)
   const [query, setQuery] = useState('')
@@ -85,7 +86,13 @@ export default function App() {
   )
 
   const reload = useCallback(async () => {
-    const [nextAgents, nextProjects, table] = await Promise.all([api.listAgents(), api.listProjects(), api.getTable()])
+    const [nextAgents, nextProjects, table, nextDiscovered] = await Promise.all([
+      api.listAgents(),
+      api.listProjects(),
+      api.getTable(),
+      api.listDiscovered().catch(() => [] as DiscoveredProject[]),
+    ])
+    setDiscovered(nextDiscovered)
     setAgents(nextAgents)
     setProjects(nextProjects)
     setSeats(table.seats)
@@ -246,6 +253,7 @@ export default function App() {
       <Sidebar
         agents={agents}
         projects={projects}
+        discovered={discovered}
         scope={scope}
         section={section}
         sectionCounts={sectionCounts}

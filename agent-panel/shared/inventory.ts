@@ -26,3 +26,13 @@ export interface Item {
 export interface Inventory {
   items: Item[]
 }
+
+/** Projeto que o Claude Code já abriu (~/.claude.json) mas que o Orbita ainda não registrou. */
+export interface DiscoveredProject {
+  path: string
+  name: string
+  /** Tem pasta .claude própria (agentes, skills ou configurações locais). */
+  hasClaudeDir: boolean
+  mcpCount: number
+  lastStartTime: number
+}

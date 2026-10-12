@@ -4,9 +4,9 @@ import { GLOBAL_SCOPE } from '../../shared/types'
 import { CLAUDE_DIR, listAgents, listProjects } from '../store'
 import { readCommands } from './commands'
 import { readHooks } from './hooks'
-import { readMcp } from './mcp'
+import { readConnectors, readMcp, readMcpContext } from './mcp'
 import { readRules } from './rules'
-import { readPlugins } from './plugins'
+import { readPlugins, readSyncedPlugins } from './plugins'
 import { itemId, readSkills, type SkillRoot } from './skills'
 
 // Prioridade quando o mesmo nome existe em vários escopos: projeto > usuário > sincronizado > plugin.
@@ -39,11 +39,14 @@ export async function buildInventory(projectId?: string): Promise<Inventory> {
   ]
   // undefined = todos os projetos; null = só o escopo global.
   const selected = projectId ? (scoped[0]?.path ?? null) : undefined
-  const [skills, commands, scan, mcps, hooks, rules, agents] = await Promise.all([
+  const ctx = await readMcpContext(selected ?? undefined)
+  const [skills, commands, scan, synced, mcps, connectors, hooks, rules, agents] = await Promise.all([
     readSkills(skillRoots),
     readCommands(commandRoots),
-    readPlugins(projects, selected),
+    readPlugins(selected, ctx),
+    readSyncedPlugins(ctx),
     readMcp(scoped, selected ?? undefined),
+    readConnectors(),
     readHooks(scoped),
     readRules(scoped),
     listAgents(),
@@ -61,7 +64,7 @@ export async function buildInventory(projectId?: string): Promise<Inventory> {
       enabled: a.enabled,
       meta: { tools: a.tools, model: a.model, color: a.color, body: a.prompt, agentId: a.id },
     }))
-  const items = [...skills, ...commands, ...scan.plugins, ...scan.contents, ...mcps, ...hooks, ...rules, ...agentItems]
+  const items = [...skills, ...commands, ...scan.plugins, ...scan.contents, ...synced.plugins, ...synced.contents, ...mcps, ...connectors, ...hooks, ...rules, ...agentItems]
   markShadowed(items)
   return { items: items.sort((a, b) => a.name.localeCompare(b.name)) }
 }

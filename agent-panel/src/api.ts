@@ -1,4 +1,4 @@
-import type { Inventory } from '../shared/inventory'
+import type { DiscoveredProject, Inventory } from '../shared/inventory'
 import type { Activity, Agent, AgentInput, Project, TableState } from '../shared/types'
 
 async function request<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
@@ -25,6 +25,7 @@ export const api = {
   addProject: (path: string) => request<Project>('/api/projects', 'POST', { path }),
   getTable: () => request<TableState>('/api/table'),
   saveTable: (table: TableState) => request<TableState>('/api/table', 'PUT', table),
+  listDiscovered: () => request<DiscoveredProject[]>('/api/projects/discovered'),
   getInventory: (project?: string) => request<Inventory>(`/api/inventory${project ? `?project=${encodeURIComponent(project)}` : ''}`),
   listActivity: () => request<Activity[]>('/api/activity'),
   removeProject: (id: string) => request<void>(`/api/projects/${id}`, 'DELETE', {}),
