@@ -1,3 +1,4 @@
+import type { Harness, HarnessInput, Prepared } from '../shared/harness'
 import type { DiscoveredProject, Inventory, ItemInput, ItemVersion } from '../shared/inventory'
 import type { Activity, Agent, AgentInput, Project, TableState } from '../shared/types'
 
@@ -32,6 +33,11 @@ export const api = {
   deleteItem: (path: string) => request<void>(`/api/items?path=${encodeURIComponent(path)}`, 'DELETE', {}),
   listVersions: (path: string) => request<ItemVersion[]>(`/api/items/history?path=${encodeURIComponent(path)}`),
   restoreVersion: (path: string, version: string) => request<{ path: string; mtime: number }>('/api/items/restore', 'POST', { path, version }),
+  listHarnesses: () => request<Harness[]>('/api/harnesses'),
+  createHarness: (input: HarnessInput) => request<Harness>('/api/harnesses', 'POST', input),
+  updateHarness: (id: string, input: HarnessInput) => request<Harness>(`/api/harnesses/${id}`, 'PUT', input),
+  deleteHarness: (id: string) => request<void>(`/api/harnesses/${id}`, 'DELETE', {}),
+  prepareHarness: (id: string) => request<Prepared>(`/api/harnesses/${id}/prepare`, 'POST', {}),
   listActivity: () => request<Activity[]>('/api/activity'),
   removeProject: (id: string) => request<void>(`/api/projects/${id}`, 'DELETE', {}),
 }

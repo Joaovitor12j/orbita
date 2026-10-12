@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GLOBAL_SCOPE, TABLE_SEATS, type Activity, type Agent, type AgentInput, type Project } from '../shared/types'
 import type { DiscoveredProject, EditableKind, Item, ItemInput, ItemKind } from '../shared/inventory'
+import { HarnessView } from './components/harness/HarnessView'
 import { api } from './api'
 import { AgentCard } from './components/AgentCard'
 import { AgentDrawer, type ScopeOption } from './components/AgentDrawer'
@@ -10,7 +11,7 @@ import { ALL_SCOPE, Sidebar } from './components/Sidebar'
 import { InventoryView } from './components/inventory/InventoryView'
 import { ItemDrawer } from './components/inventory/ItemDrawer'
 import { ItemEditor } from './components/inventory/ItemEditor'
-import { sectionOf } from './components/inventory/meta'
+import { sectionOf, type SectionId } from './components/inventory/meta'
 import { MODELS } from './constants'
 
 const Hall3D = lazy(() => import('./components/hall/Hall3D').then((m) => ({ default: m.Hall3D })))
@@ -36,9 +37,9 @@ const initialView = (): View => {
   return stored === 'list' || stored === 'hall' ? stored : 'hall'
 }
 
-const initialSection = (): ItemKind => {
+const initialSection = (): SectionId => {
   const stored = localStorage.getItem('orbita-section')
-  return ['skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as ItemKind) : 'agent'
+  return ['harness', 'skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as SectionId) : 'agent'
 }
 
 const initialTheme = (): Theme => {
@@ -58,11 +59,12 @@ export default function App() {
   const [status, setStatus] = useState<StatusFilter>('all')
   const [selected, setSelected] = useState<Agent | 'new' | null>(null)
   const [view, setView] = useState<View>(initialView)
-  const [section, setSection] = useState<ItemKind>(initialSection)
+  const [section, setSection] = useState<SectionId>(initialSection)
   const [inventory, setInventory] = useState<Item[]>([])
   const [openItem, setOpenItem] = useState<Item | null>(null)
   const [editor, setEditor] = useState<{ kind: EditableKind; item: Item | null } | null>(null)
   const [inventoryTick, setInventoryTick] = useState(0)
+  const [harnessCount, setHarnessCount] = useState(0)
   const [seats, setSeats] = useState<(string | null)[]>(() => Array<string | null>(TABLE_SEATS).fill(null))
   const [activity, setActivity] = useState<Activity[]>([])
   const [theme, setTheme] = useState<Theme>(initialTheme)
@@ -122,6 +124,7 @@ export default function App() {
 
   useEffect(() => {
     let alive = true
+    void api.listHarnesses().then((list) => alive && setHarnessCount(list.length)).catch(() => undefined)
     api
       .getInventory(scope === ALL_SCOPE ? undefined : scope)
       .then((next) => alive && setInventory(next.items))
@@ -263,14 +266,16 @@ export default function App() {
 
   const sectionItems = useMemo(() => inventory.filter((i) => i.kind === section), [inventory, section])
   const sectionCounts = useMemo(() => {
-    const counts: Partial<Record<ItemKind, number>> = {}
+    const counts: Partial<Record<SectionId, number>> = {}
     for (const item of inventory) if (item.kind !== 'agent') counts[item.kind] = (counts[item.kind] ?? 0) + 1
+    counts.harness = harnessCount
     counts.agent = scope === ALL_SCOPE ? agents.length : agents.filter((a) => a.scopeId === scope).length
     return counts
-  }, [inventory, agents, scope])
+  }, [inventory, agents, scope, harnessCount])
 
   const scopeLabel = scope === ALL_SCOPE ? 'Todos os escopos' : scopes.find((s) => s.id === scope)?.label ?? ''
   const isAgents = section === 'agent'
+  const isHarness = section === 'harness'
   const title = isAgents
     ? scope === ALL_SCOPE
       ? 'Todos os agentes'
@@ -299,7 +304,9 @@ export default function App() {
           <div>
             <h1>{title}</h1>
             <p className="subtitle">
-              {isAgents
+              {isHarness
+                ? 'Perfis de sessão do Claude Code: gera o comando de lançamento sem alterar seus arquivos'
+                : isAgents
                 ? `${stats.active} de ${stats.total} ativos em ${stats.projects + 1} escopos`
                 : `${sectionItems.filter((i) => i.enabled).length} de ${sectionItems.length} ativos · ${scopeLabel}`}
             </p>
@@ -336,6 +343,7 @@ export default function App() {
           </div>
         </header>
 
+        {!isHarness && (
         <div className="toolbar">
           <label className="search">
             <SearchIcon />
@@ -373,9 +381,12 @@ export default function App() {
           </select>
           </>)}
         </div>
+        )}
 
         {loading ? (
           <div className="empty">Carregando...</div>
+        ) : isHarness ? (
+          <HarnessView projects={projects} run={run} onChanged={() => setInventoryTick((n) => n + 1)} />
         ) : !isAgents ? (
           <InventoryView key={section} section={sectionOf(section)} items={sectionItems} query={query} onOpen={setOpenItem} />
         ) : view === 'list' && visible.length === 0 ? (

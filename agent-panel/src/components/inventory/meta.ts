@@ -1,14 +1,17 @@
 import type { ItemKind } from '../../../shared/inventory'
 
 /** `agent` abre a visão de agentes (Salão/Lista); os demais abrem o inventário. */
+export type SectionId = ItemKind | 'harness'
+
 export interface Section {
-  kind: ItemKind
+  kind: SectionId
   label: string
   singular: string
   empty: string
 }
 
 export const SECTIONS: Section[] = [
+  { kind: 'harness', label: 'Harness', singular: 'harness', empty: 'Nenhum harness criado ainda.' },
   { kind: 'agent', label: 'Agentes', singular: 'agente', empty: 'Nenhum agente encontrado.' },
   { kind: 'skill', label: 'Skills', singular: 'skill', empty: 'Nenhuma skill neste escopo.' },
   { kind: 'command', label: 'Comandos', singular: 'comando', empty: 'Nenhum comando neste escopo.' },
@@ -18,7 +21,7 @@ export const SECTIONS: Section[] = [
   { kind: 'rule', label: 'Regras', singular: 'regra', empty: 'Nenhuma regra ou CLAUDE.md neste escopo.' },
 ]
 
-export const sectionOf = (kind: ItemKind) => SECTIONS.find((s) => s.kind === kind) ?? SECTIONS[0]!
+export const sectionOf = (kind: SectionId) => SECTIONS.find((s) => s.kind === kind) ?? SECTIONS[0]!
 
 export const META_LABELS: Record<string, string> = {
   type: 'Tipo',

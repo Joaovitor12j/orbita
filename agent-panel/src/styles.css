@@ -964,3 +964,33 @@ textarea.mono {
 .versions li span { flex: 1; }
 .versions li small { color: var(--text-faint); }
 .drawer-head .head-actions { display: flex; align-items: center; gap: 6px; }
+
+/* Harness */
+.drawer.wide { width: min(720px, 100%); }
+.group-title { margin: 8px 0 -6px; font-size: 12px; font-weight: 650; letter-spacing: .07em; text-transform: uppercase; color: var(--text-faint); display: flex; align-items: baseline; gap: 8px; }
+.group-title small { text-transform: none; letter-spacing: 0; font-weight: 500; }
+.field-row.three { grid-template-columns: repeat(3, 1fr); }
+.harness-card.picked { border-color: var(--accent); }
+.harness-card .card-foot.actions { gap: 8px; margin-top: auto; padding-top: 4px; }
+.pick-box { margin-left: auto; display: inline-flex; cursor: pointer; }
+.picklist { display: flex; flex-direction: column; gap: 8px; }
+.picklist ul { list-style: none; margin: 0; padding: 0; max-height: 200px; overflow: auto; border: 1px solid var(--border); border-radius: 10px; }
+.picklist li label { display: flex; align-items: baseline; gap: 10px; padding: 7px 12px; cursor: pointer; font-size: 13px; }
+.picklist li label:hover { background: var(--surface-hover); }
+.pick-label { font-family: var(--mono); font-size: 12.5px; }
+.picklist small, .plugin-rows small { color: var(--text-faint); font-size: 11.5px; }
+.pick-empty { padding: 10px 12px; font-size: 12.5px; color: var(--text-faint); }
+.plugin-rows { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 10px; }
+.plugin-rows li { display: flex; align-items: center; gap: 10px; padding: 7px 12px; font-size: 13px; border-bottom: 1px solid var(--border); }
+.plugin-rows li:last-child { border-bottom: 0; }
+.plugin-rows li small { flex: 1; }
+.plugin-rows select { width: auto; }
+.link { padding: 0; color: var(--accent-2); text-decoration: underline; font-size: inherit; }
+.body-view.command { max-height: none; font-size: 12.5px; white-space: pre; overflow-x: auto; word-break: normal; }
+.kv.files li { flex-direction: column; gap: 2px; }
+.vs { color: var(--text-faint); font-weight: 400; }
+table.compare { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.compare th, table.compare td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.compare thead th { color: var(--text-dim); font-weight: 600; }
+table.compare tbody th { color: var(--text-faint); font-weight: 500; width: 28%; }
+table.compare tr.diff td { background: var(--accent-soft); }

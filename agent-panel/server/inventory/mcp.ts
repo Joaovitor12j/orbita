@@ -121,16 +121,16 @@ export async function readMcpContext(selected?: string): Promise<McpContext> {
 }
 
 // `mcpServers` do manifesto pode ser um objeto, um caminho para .mcp.json ou uma lista deles.
-async function declaredServers(installPath: string, manifest: Raw): Promise<[string, Raw][]> {
+async function declaredServers(installPath: string, manifest: Raw): Promise<[string, Raw, string][]> {
   const pointers = [manifest.mcpServers].flat().filter((v) => v !== undefined)
-  const found: [string, Raw][] = []
+  const found: [string, Raw, string][] = []
   for (const pointer of pointers) {
     if (typeof pointer === 'string') {
       const file = path.resolve(installPath, pointer)
       if (!file.startsWith(installPath)) continue
       const json = await readJson<Raw>(file)
-      found.push(...servers(json && 'mcpServers' in json ? json.mcpServers : json))
-    } else found.push(...servers(pointer))
+      found.push(...servers(json && 'mcpServers' in json ? json.mcpServers : json).map(([n, r]): [string, Raw, string] => [n, r, file]))
+    } else found.push(...servers(pointer).map(([n, r]): [string, Raw, string] => [n, r, path.join(installPath, '.claude-plugin', 'plugin.json')]))
   }
   return found
 }
@@ -146,16 +146,19 @@ export async function readPluginMcp(
 ): Promise<Item[]> {
   const file = path.join(installPath, '.mcp.json')
   const fromFile = await readJson<Raw>(file)
-  const list = [...servers(fromFile && 'mcpServers' in fromFile ? fromFile.mcpServers : fromFile), ...(await declaredServers(installPath, manifest))]
+  const list: [string, Raw, string][] = [
+    ...servers(fromFile && 'mcpServers' in fromFile ? fromFile.mcpServers : fromFile).map(([n, r]): [string, Raw, string] => [n, r, file]),
+    ...(await declaredServers(installPath, manifest)),
+  ]
   const seen = new Set<string>()
-  return list.flatMap(([name, raw]) => {
+  return list.flatMap(([name, raw, source]) => {
     if (seen.has(name)) return []
     seen.add(name)
     const fullName = `plugin:${plugin}:${name}`
     const item = toItem(name, raw, {
       source: 'plugin',
       origin,
-      file,
+      file: source,
       scope: 'plugin',
       enabled: enabled && !ctx.disabled.has(fullName),
       warnings: ctx.authPending.has(fullName) ? ['Requer autenticação (OAuth) no Claude Code'] : [],
@@ -187,3 +190,22 @@ export async function readConnectors(): Promise<Item[]> {
 }
 
 export { HIDDEN }
+
+const pick = (container: unknown, name: string): Raw | null => {
+  const found = container && typeof container === 'object' ? (container as Record<string, unknown>)[name] : null
+  return found && typeof found === 'object' ? (found as Raw) : null
+}
+
+/**
+ * Definição completa (com env e headers reais) de um servidor, lida de volta do arquivo de origem.
+ * Só o servidor usa isto, para gerar o mcp.json de um harness: nunca vai para o navegador.
+ */
+export async function readRawServer(item: Item, projectPaths: Map<string, string>): Promise<Raw | null> {
+  const json = await readJson<Raw>(item.path)
+  if (!json) return null
+  if (item.meta.scope === 'local') {
+    const dir = projectPaths.get(item.origin)
+    return dir ? pick(pick((json.projects as Raw) ?? {}, dir)?.mcpServers, item.name) : null
+  }
+  return pick(json.mcpServers, item.name) ?? pick(json, item.name)
+}

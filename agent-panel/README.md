@@ -38,6 +38,14 @@ A visão **Salão 3D** (three.js via `@react-three/fiber`) mostra os mesmos agen
 - Carregado sob demanda (chunk separado); sem WebGL o botão fica desabilitado e o Salão 2D continua disponível
 - A lógica de posicionamento é compartilhada com o 2D em `src/components/hall/layout.ts`
 
+## Inventário e harness
+
+Além dos agentes, a barra lateral lista **skills, comandos, hooks, servidores MCP, plugins e regras** (usuário, projeto, plugins e conta claude.ai), com origem, estado e itens sobrescritos. Valores de `env` e `headers` dos MCPs nunca saem do servidor.
+
+- **Skills e comandos** de usuário e projeto podem ser criados, editados e excluídos, com templates e histórico de versões em `~/.config/orbita/history`
+- **Harness** é um perfil de sessão (modelo, esforço, permissões, plugins ligados/desligados, skills desligadas, MCPs exclusivos, agentes extras, instruções). O Orbita **só gera o comando**: grava `settings.json`, `mcp.json` (permissão 0600, com as credenciais) e um plugin de agentes em `~/.config/orbita/harnesses/<id>/` e monta o `claude --settings … --mcp-config … --strict-mcp-config --plugin-dir …`. Nenhum arquivo do `~/.claude` ou do projeto é alterado, e o Orbita não executa nada
+- O modo de permissão `bypassPermissions` não é oferecido
+
 ## Atalhos
 
 - `Ctrl K`: buscar

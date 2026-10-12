@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { GLOBAL_SCOPE, type Agent, type Project } from '../../shared/types'
-import type { DiscoveredProject, ItemKind } from '../../shared/inventory'
-import { SECTIONS } from './inventory/meta'
+import type { DiscoveredProject } from '../../shared/inventory'
+import { SECTIONS, type SectionId } from './inventory/meta'
 import { CloseIcon, FolderIcon, GlobeIcon, MoonIcon, OrbitIcon, PlusIcon, SunIcon } from './Icons'
 
 interface Props {
@@ -9,12 +9,12 @@ interface Props {
   projects: Project[]
   discovered: DiscoveredProject[]
   scope: string
-  section: ItemKind
+  section: SectionId
   /** Contagem por seção no escopo atual. */
-  sectionCounts: Partial<Record<ItemKind, number>>
+  sectionCounts: Partial<Record<SectionId, number>>
   theme: 'dark' | 'light'
   onScope: (scope: string) => void
-  onSection: (section: ItemKind) => void
+  onSection: (section: SectionId) => void
   onAddProject: (path: string) => Promise<void>
   onRemoveProject: (id: string) => void
   onToggleTheme: () => void

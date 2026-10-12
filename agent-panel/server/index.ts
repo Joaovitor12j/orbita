@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
+import type { HarnessInput } from '../shared/harness'
 import type { ItemInput } from '../shared/inventory'
 import type { AgentInput, TableState } from '../shared/types'
 import { listActivity } from './activity'
@@ -17,6 +18,7 @@ import {
   updateAgent,
 } from './store'
 import { createItem, deleteItem, listVersions, readVersion, restoreVersion, updateItem } from './editor'
+import { createHarness, listHarnesses, prepareHarness, removeHarness, updateHarness } from './harness'
 import { listDiscovered } from './discovery'
 import { buildInventory } from './inventory'
 import { readTable, saveTable } from './table'
@@ -105,6 +107,20 @@ app.post('/api/items/restore', async (c) => {
   const { path, version } = await c.req.json<{ path: string; version: string }>()
   return c.json(await restoreVersion(path, version))
 })
+
+app.get('/api/harnesses', async (c) => c.json(await listHarnesses()))
+
+app.post('/api/harnesses', async (c) => c.json(await createHarness(await c.req.json<HarnessInput>()), 201))
+
+app.put('/api/harnesses/:id', async (c) => c.json(await updateHarness(c.req.param('id'), await c.req.json<HarnessInput>())))
+
+app.delete('/api/harnesses/:id', async (c) => {
+  await removeHarness(c.req.param('id'))
+  return c.body(null, 204)
+})
+
+// Grava os arquivos do harness em ~/.config/orbita/harnesses/<id>/ e devolve o comando de lançamento.
+app.post('/api/harnesses/:id/prepare', async (c) => c.json(await prepareHarness(c.req.param('id'))))
 
 app.get('/api/activity', async (c) => c.json(await listActivity()))
 
