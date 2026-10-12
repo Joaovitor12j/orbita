@@ -18,6 +18,8 @@ export interface Item {
   enabled: boolean
   /** Skill ou comando de usuário/projeto: o Orbita pode editar, excluir e versionar. */
   editable?: boolean
+  /** Plugin instalado por usuário ou projeto: o Orbita pode ligar e desligar (`enabledPlugins`). */
+  toggleable?: boolean
   /** Id do item que sobrescreve este (mesmo nome em escopo de maior prioridade). */
   shadowedBy?: string
   /** Avisos de leitura (arquivo malformado, frontmatter ausente…). */

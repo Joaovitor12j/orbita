@@ -18,6 +18,7 @@ import {
   updateAgent,
 } from './store'
 import { createItem, deleteItem, listVersions, readVersion, restoreVersion, updateItem } from './editor'
+import { setPluginEnabled, type PluginToggleInput } from './plugin-toggle'
 import { createHarness, listHarnesses, prepareHarness, removeHarness, updateHarness } from './harness'
 import { listLive, sessionLogs, sessionTail } from './sessions'
 import { buildUsage } from './usage'
@@ -109,6 +110,8 @@ app.post('/api/items/restore', async (c) => {
   const { path, version } = await c.req.json<{ path: string; version: string }>()
   return c.json(await restoreVersion(path, version))
 })
+
+app.put('/api/plugins/enabled', async (c) => c.json(await setPluginEnabled(await c.req.json<PluginToggleInput>())))
 
 app.get('/api/harnesses', async (c) => c.json(await listHarnesses()))
 

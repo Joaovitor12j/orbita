@@ -8,6 +8,7 @@ interface Props {
   all: Item[]
   onClose: () => void
   onEdit?: (item: Item) => void
+  onTogglePlugin?: (item: Item) => void
 }
 
 const BODY_LIMIT = 20_000
@@ -42,7 +43,7 @@ function renderValue(value: unknown): ReactNode {
 const isEmpty = (v: unknown) =>
   v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v as object).length)
 
-export function ItemDrawer({ item, all, onClose, onEdit }: Props) {
+export function ItemDrawer({ item, all, onClose, onEdit, onTogglePlugin }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -65,6 +66,11 @@ export function ItemDrawer({ item, all, onClose, onEdit }: Props) {
             {item.editable && onEdit && (
               <button className="btn ghost" onClick={() => onEdit(item)}>
                 Editar
+              </button>
+            )}
+            {item.toggleable && onTogglePlugin && (
+              <button className="btn ghost" onClick={() => onTogglePlugin(item)}>
+                {item.enabled ? 'Desligar' : 'Ligar'}
               </button>
             )}
             <button className="icon-btn" onClick={onClose} aria-label="Fechar">

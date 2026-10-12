@@ -35,6 +35,8 @@ export const api = {
   deleteItem: (path: string) => request<void>(`/api/items?path=${encodeURIComponent(path)}`, 'DELETE', {}),
   listVersions: (path: string) => request<ItemVersion[]>(`/api/items/history?path=${encodeURIComponent(path)}`),
   restoreVersion: (path: string, version: string) => request<{ path: string; mtime: number }>('/api/items/restore', 'POST', { path, version }),
+  setPluginEnabled: (key: string, enabled: boolean, projectPath?: string) =>
+    request<{ path: string }>('/api/plugins/enabled', 'PUT', { key, enabled, projectPath }),
   listHarnesses: () => request<Harness[]>('/api/harnesses'),
   createHarness: (input: HarnessInput) => request<Harness>('/api/harnesses', 'POST', input),
   updateHarness: (id: string, input: HarnessInput) => request<Harness>(`/api/harnesses/${id}`, 'PUT', input),

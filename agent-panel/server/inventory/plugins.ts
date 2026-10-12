@@ -58,6 +58,7 @@ interface ScanArgs {
   /** Rótulo do próprio plugin na lista (Global, Projeto X, Conta). */
   scopeLabel: string
   meta: Record<string, unknown>
+  toggleable?: boolean
 }
 
 // Lê o que um plugin traz: skills, comandos, agentes, hooks e MCPs.
@@ -90,6 +91,7 @@ async function scanPlugin(a: ScanArgs, ctx: McpContext): Promise<{ plugin: Item;
     origin: a.scopeLabel,
     path: a.installPath,
     enabled: a.enabled,
+    ...(a.toggleable ? { toggleable: true } : {}),
     ...(warnings.length ? { warnings } : {}),
     meta: {
       ...a.meta,
@@ -129,6 +131,7 @@ export async function readPlugins(projectPath: string | null | undefined, ctx: M
           installPath,
           enabled: resolveEnabled(key, layers),
           origin: isProject ? `${name} (${path.basename(install.projectPath!)})` : (name as string),
+          toggleable: true,
           scopeLabel: isProject ? `Projeto ${path.basename(install.projectPath!)}` : 'Global',
           meta: { key, marketplace, scope: install.scope ?? 'user', projectPath: install.projectPath, version: install.version },
         },

@@ -253,6 +253,16 @@ export default function App() {
     if (done) afterItemChange()
   }
 
+  const handleTogglePlugin = async (item: Item) => {
+    const enabled = !item.enabled
+    const projectPath = typeof item.meta.projectPath === 'string' ? item.meta.projectPath : undefined
+    const done = await run(
+      () => api.setPluginEnabled(String(item.meta.key), enabled, projectPath).then(() => true),
+      `${item.name} ${enabled ? 'ligado' : 'desligado'}: vale para as próximas sessões`,
+    )
+    if (done) afterItemChange()
+  }
+
   const handleAddProject = async (path: string) => {
     const project = await run(() => api.addProject(path), 'Projeto registrado')
     if (!project) return
@@ -461,6 +471,7 @@ export default function App() {
           item={openItem}
           all={inventory}
           onClose={() => setOpenItem(null)}
+          onTogglePlugin={handleTogglePlugin}
           onEdit={(item) => {
             setOpenItem(null)
             setEditor({ kind: item.kind as EditableKind, item })
