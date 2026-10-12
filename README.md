@@ -6,6 +6,17 @@ O Claude Code guarda a configuração espalhada em muitos lugares: `~/.claude`, 
 
 > Roda **somente na sua máquina**, escuta apenas em `127.0.0.1` e não envia nada para fora. Não é um produto da Anthropic nem tem relação oficial com ela.
 
+## Screenshots
+
+Todas as imagens usam dados de exemplo, não a configuração de ninguém.
+
+| | |
+| --- | --- |
+| ![Salão 2D](docs/screenshots/salao-2d.png)<br>**Salão 2D**: agentes, cadeiras do Conselho e atividade ao vivo | ![Salão 3D](docs/screenshots/salao-3d.png)<br>**Salão 3D**: a mesma cena com câmera livre (three.js) |
+| ![Agentes](docs/screenshots/agentes.png)<br>**Agentes** em lista, com filtros por escopo, estado e modelo | ![Skills](docs/screenshots/skills.png)<br>**Skills** de usuário, projeto e plugins, no tema claro |
+| ![Plugins](docs/screenshots/plugins.png)<br>**Plugins**: detalhes e botão para ligar/desligar | ![MCPs](docs/screenshots/mcps.png)<br>**MCPs**: o valor dos cabeçalhos e variáveis é ocultado |
+| ![Sessões](docs/screenshots/sessoes.png)<br>**Sessões** em andamento e em segundo plano | ![Uso](docs/screenshots/uso.png)<br>**Uso**: tokens e custo por dia, projeto e modelo |
+
 ## O que ele faz
 
 | Seção | O que mostra e o que permite |
