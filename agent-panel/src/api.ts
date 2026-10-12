@@ -1,3 +1,4 @@
+import type { SessionsResponse, TailEntry } from '../shared/sessions'
 import type { UsageReport } from '../shared/usage'
 import type { Harness, HarnessInput, Prepared } from '../shared/harness'
 import type { DiscoveredProject, Inventory, ItemInput, ItemVersion } from '../shared/inventory'
@@ -41,6 +42,9 @@ export const api = {
   prepareHarness: (id: string) => request<Prepared>(`/api/harnesses/${id}/prepare`, 'POST', {}),
   getUsage: (days: number, project?: string) =>
     request<UsageReport>(`/api/usage?days=${days}${project ? `&project=${encodeURIComponent(project)}` : ''}`),
+  getSessions: () => request<SessionsResponse>('/api/sessions'),
+  getSessionTail: (sessionId: string) => request<TailEntry[]>(`/api/sessions/${sessionId}/tail`),
+  getSessionLogs: (id: string) => request<{ text?: string; error?: string }>(`/api/sessions/background/${id}/logs`),
   listActivity: () => request<Activity[]>('/api/activity'),
   removeProject: (id: string) => request<void>(`/api/projects/${id}`, 'DELETE', {}),
 }

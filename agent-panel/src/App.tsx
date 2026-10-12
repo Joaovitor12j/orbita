@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GLOBAL_SCOPE, TABLE_SEATS, type Activity, type Agent, type AgentInput, type Project } from '../shared/types'
 import type { DiscoveredProject, EditableKind, Item, ItemInput, ItemKind } from '../shared/inventory'
+import { SessionsView } from './components/sessions/SessionsView'
 import { UsageView } from './components/usage/UsageView'
 import { HarnessView } from './components/harness/HarnessView'
 import { api } from './api'
@@ -40,7 +41,7 @@ const initialView = (): View => {
 
 const initialSection = (): SectionId => {
   const stored = localStorage.getItem('orbita-section')
-  return ['harness', 'usage', 'skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as SectionId) : 'agent'
+  return ['harness', 'usage', 'sessions', 'skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as SectionId) : 'agent'
 }
 
 const initialTheme = (): Theme => {
@@ -278,6 +279,7 @@ export default function App() {
   const isAgents = section === 'agent'
   const isHarness = section === 'harness'
   const isUsage = section === 'usage'
+  const isSessions = section === 'sessions'
   const usageProject = projects.find((p) => p.id === scope)?.path
   const title = isAgents
     ? scope === ALL_SCOPE
@@ -309,6 +311,8 @@ export default function App() {
             <p className="subtitle">
               {isHarness
                 ? 'Perfis de sessão do Claude Code: gera o comando de lançamento sem alterar seus arquivos'
+                : isSessions
+                ? 'Sessões do Claude Code em andamento e em segundo plano (somente leitura)'
                 : isUsage
                 ? 'Tokens e custos lidos dos transcripts do Claude Code (somente leitura)'
                 : isAgents
@@ -348,7 +352,7 @@ export default function App() {
           </div>
         </header>
 
-        {!isHarness && !isUsage && (
+        {!isHarness && !isUsage && !isSessions && (
         <div className="toolbar">
           <label className="search">
             <SearchIcon />
@@ -390,6 +394,8 @@ export default function App() {
 
         {loading ? (
           <div className="empty">Carregando...</div>
+        ) : isSessions ? (
+          <SessionsView />
         ) : isUsage ? (
           <UsageView projectPath={usageProject} scopeLabel={usageProject ? scopeLabel : 'Todos os projetos'} />
         ) : isHarness ? (

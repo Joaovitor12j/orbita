@@ -1,7 +1,7 @@
 import type { ItemKind } from '../../../shared/inventory'
 
 /** `agent` abre a visão de agentes (Salão/Lista); os demais abrem o inventário. */
-export type SectionId = ItemKind | 'harness' | 'usage'
+export type SectionId = ItemKind | 'harness' | 'usage' | 'sessions'
 
 export interface Section {
   kind: SectionId
@@ -19,6 +19,7 @@ export const SECTIONS: Section[] = [
   { kind: 'mcp', label: 'MCPs', singular: 'servidor MCP', empty: 'Nenhum servidor MCP neste escopo.' },
   { kind: 'plugin', label: 'Plugins', singular: 'plugin', empty: 'Nenhum plugin neste escopo.' },
   { kind: 'rule', label: 'Regras', singular: 'regra', empty: 'Nenhuma regra ou CLAUDE.md neste escopo.' },
+  { kind: 'sessions', label: 'Sessões', singular: 'sessão', empty: 'Nenhuma sessão.' },
   { kind: 'usage', label: 'Uso', singular: 'uso', empty: 'Sem dados de uso.' },
 ]
 

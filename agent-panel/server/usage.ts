@@ -264,6 +264,48 @@ const sumTokens = (list: TokenCounts[]) => {
   return t
 }
 
+type ParsedFile = Parsed & { __file: string }
+
+/** Monta o resumo de uma sessão: com registro do Claude Code ele é a fonte (mesmos números do custo); senão, o que o transcript permite somar. */
+function makeSession(p: ParsedFile, subagents: SubagentUsage[]): SessionUsage {
+  const exact = p.registered !== null
+  const models: ModelUsage[] = exact
+    ? Object.entries(p.registered!).map(([model, t]) => ({ model, ...t, messages: p.models[model]?.messages ?? 0 }))
+    : Object.entries(p.models).map(([model, m]) => ({ model, ...m }))
+  return {
+    tokenSource: exact ? 'registrado' : 'transcript',
+    id: p.sessionId, title: p.title, cwd: p.cwd, project: path.basename(p.cwd) || p.projectDir, entrypoint: p.entrypoint,
+    startedAt: p.startedAt, endedAt: p.endedAt, messages: p.messages, models, costUSD: p.costUSD,
+    linesAdded: p.linesAdded, linesRemoved: p.linesRemoved, durationMs: p.durationMs,
+    subagents, file: p.__file, ...sumTokens(models),
+  }
+}
+
+function subagentsBySession(parsed: ParsedFile[]) {
+  const map = new Map<string, SubagentUsage[]>()
+  for (const p of parsed) {
+    if (p.kind !== 'sub') continue
+    const key = `${p.projectDir}/${p.sessionId}`
+    const tokens = sumTokens(Object.values(p.models))
+    const list = map.get(key) ?? []
+    list.push({ agentId: path.basename(p.__file, '.jsonl').replace(/^agent-/, ''), type: p.agentType, description: p.description, models: Object.keys(p.models), messages: p.messages, ...tokens })
+    map.set(key, list)
+  }
+  return map
+}
+
+/** Resumo de uso de sessões específicas (inclusive as sem resposta ainda), pelo id da sessão. */
+export async function usageForSessions(ids: string[]): Promise<Map<string, SessionUsage>> {
+  const wanted = new Set(ids)
+  const parsed = (await scan()) as ParsedFile[]
+  const subs = subagentsBySession(parsed)
+  const result = new Map<string, SessionUsage>()
+  for (const p of parsed) {
+    if (p.kind === 'main' && wanted.has(p.sessionId)) result.set(p.sessionId, makeSession(p, subs.get(`${p.projectDir}/${p.sessionId}`) ?? []))
+  }
+  return result
+}
+
 const group = (map: Map<string, GroupUsage>, key: string, label: string) => {
   let g = map.get(key)
   if (!g) {
@@ -277,19 +319,11 @@ const byWork = (a: GroupUsage, b: GroupUsage) => b.input + b.output + b.cacheWri
 
 /** Relatório de uso. `days` = 0 considera tudo; `projectPath` limita às sessões dessa pasta. */
 export async function buildUsage(days = 30, projectPath?: string): Promise<UsageReport> {
-  const parsed = (await scan()) as (Parsed & { __file: string })[]
+  const parsed = (await scan()) as ParsedFile[]
   const since = days > 0 ? Date.now() - days * 86_400_000 : 0
   const inScope = (cwd: string) => !projectPath || cwd === projectPath || cwd.startsWith(`${projectPath}${path.sep}`)
 
-  const subsBySession = new Map<string, SubagentUsage[]>()
-  for (const p of parsed) {
-    if (p.kind !== 'sub') continue
-    const key = `${p.projectDir}/${p.sessionId}`
-    const tokens = sumTokens(Object.values(p.models))
-    const list = subsBySession.get(key) ?? []
-    list.push({ agentId: path.basename(p.__file, '.jsonl').replace(/^agent-/, ''), type: p.agentType, description: p.description, models: Object.keys(p.models), messages: p.messages, ...tokens })
-    subsBySession.set(key, list)
-  }
+  const subsBySession = subagentsBySession(parsed)
 
   const sessions: SessionUsage[] = []
   let empty = 0
@@ -299,19 +333,7 @@ export async function buildUsage(days = 30, projectPath?: string): Promise<Usage
       empty++
       continue
     }
-    // Com registro do Claude Code, ele é a fonte (mesmos números do custo); senão, o que o transcript permite somar.
-    const exact = p.registered !== null
-    const models: ModelUsage[] = exact
-      ? Object.entries(p.registered!).map(([model, t]) => ({ model, ...t, messages: p.models[model]?.messages ?? 0 }))
-      : Object.entries(p.models).map(([model, m]) => ({ model, ...m }))
-    const tokens = sumTokens(models)
-    sessions.push({
-      tokenSource: exact ? 'registrado' : 'transcript',
-      id: p.sessionId, title: p.title, cwd: p.cwd, project: path.basename(p.cwd) || p.projectDir, entrypoint: p.entrypoint,
-      startedAt: p.startedAt, endedAt: p.endedAt, messages: p.messages, models, costUSD: p.costUSD,
-      linesAdded: p.linesAdded, linesRemoved: p.linesRemoved, durationMs: p.durationMs,
-      subagents: subsBySession.get(`${p.projectDir}/${p.sessionId}`) ?? [], file: p.__file, ...tokens,
-    })
+    sessions.push(makeSession(p, subsBySession.get(`${p.projectDir}/${p.sessionId}`) ?? []))
   }
   sessions.sort((a, b) => b.endedAt.localeCompare(a.endedAt))
 

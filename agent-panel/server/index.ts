@@ -19,6 +19,7 @@ import {
 } from './store'
 import { createItem, deleteItem, listVersions, readVersion, restoreVersion, updateItem } from './editor'
 import { createHarness, listHarnesses, prepareHarness, removeHarness, updateHarness } from './harness'
+import { listLive, sessionLogs, sessionTail } from './sessions'
 import { buildUsage } from './usage'
 import { listDiscovered } from './discovery'
 import { buildInventory } from './inventory'
@@ -128,6 +129,12 @@ app.get('/api/usage', async (c) => {
   if (!Number.isFinite(days) || days < 0 || days > 3650) throw new HTTPException(400, { message: 'Período inválido' })
   return c.json(await buildUsage(days, c.req.query('project') || undefined))
 })
+
+app.get('/api/sessions', async (c) => c.json(await listLive()))
+
+app.get('/api/sessions/:sessionId/tail', async (c) => c.json(await sessionTail(c.req.param('sessionId'))))
+
+app.get('/api/sessions/background/:id/logs', async (c) => c.json(await sessionLogs(c.req.param('id'))))
 
 app.get('/api/activity', async (c) => c.json(await listActivity()))
 
