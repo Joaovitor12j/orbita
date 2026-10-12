@@ -59,7 +59,7 @@ export function Sidebar({ agents, projects, discovered, scope, section, sectionC
         {SECTIONS.map((s) => (
           <button key={s.kind} className={`scope ${section === s.kind ? 'active' : ''}`} onClick={() => onSection(s.kind)}>
             <span className="scope-label">{s.label}</span>
-            <span className="scope-count">{sectionCounts[s.kind] ?? 0}</span>
+            {s.kind !== 'usage' && <span className="scope-count">{sectionCounts[s.kind] ?? 0}</span>}
           </button>
         ))}
       </nav>

@@ -45,6 +45,7 @@ Além dos agentes, a barra lateral lista **skills, comandos, hooks, servidores M
 - **Skills e comandos** de usuário e projeto podem ser criados, editados e excluídos, com templates e histórico de versões em `~/.config/orbita/history`
 - **Harness** é um perfil de sessão (modelo, esforço, permissões, plugins ligados/desligados, skills desligadas, MCPs exclusivos, agentes extras, instruções). O Orbita **só gera o comando**: grava `settings.json`, `mcp.json` (permissão 0600, com as credenciais) e um plugin de agentes em `~/.config/orbita/harnesses/<id>/` e monta o `claude --settings … --mcp-config … --strict-mcp-config --plugin-dir …`. Nenhum arquivo do `~/.claude` ou do projeto é alterado, e o Orbita não executa nada
 - O modo de permissão `bypassPermissions` não é oferecido
+- **Uso** lê os transcripts em `~/.claude/projects` (somente leitura) e mostra tokens e custo por dia, projeto, modelo, subagente e sessão. Custo e tokens vêm do registro `cost-state` que o próprio Claude Code grava (só em sessões recentes); nas demais os tokens são aproximados a partir das mensagens e o custo fica em branco, pois o Orbita não estima preços. Um cache em `~/.config/orbita/usage-cache.json` evita reler os arquivos
 
 ## Atalhos
 

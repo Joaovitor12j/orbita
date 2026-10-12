@@ -994,3 +994,27 @@ table.compare th, table.compare td { text-align: left; padding: 9px 10px; border
 table.compare thead th { color: var(--text-dim); font-weight: 600; }
 table.compare tbody th { color: var(--text-faint); font-weight: 500; width: 28%; }
 table.compare tr.diff td { background: var(--accent-soft); }
+
+/* Uso */
+.usage { display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.metrics { margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.metrics > div { padding: 10px 12px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface); display: flex; flex-direction: column; gap: 3px; }
+.metrics dt { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--text-faint); }
+.metrics dd { margin: 0; font-size: 17px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.metrics.big dd { font-size: 22px; letter-spacing: -.02em; }
+.metrics small { font-size: 11.5px; color: var(--text-faint); }
+.usage-card { padding: 14px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.usage-card h3 { margin: 0; font-size: 13px; font-weight: 650; }
+.usage-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.usage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; }
+.usage-chart { width: 100%; height: auto; }
+.usage-chart .bar { fill: var(--accent); }
+.usage-chart .bar:hover { fill: var(--accent-2); }
+.usage-chart .axis { stroke: var(--border-strong); stroke-width: 1; }
+.usage-chart .tick { fill: var(--text-faint); font-size: 10px; }
+table.usage-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+table.usage-table th, table.usage-table td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+table.usage-table th:first-child, table.usage-table td:first-child, table.usage-table td.wrap { text-align: left; }
+table.usage-table thead th { color: var(--text-faint); font-weight: 600; font-size: 11px; }
+table.usage-table td.wrap { white-space: normal; word-break: break-word; }
+@media (max-width: 900px) { .metrics { grid-template-columns: repeat(2, 1fr); } }

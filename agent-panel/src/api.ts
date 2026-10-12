@@ -1,3 +1,4 @@
+import type { UsageReport } from '../shared/usage'
 import type { Harness, HarnessInput, Prepared } from '../shared/harness'
 import type { DiscoveredProject, Inventory, ItemInput, ItemVersion } from '../shared/inventory'
 import type { Activity, Agent, AgentInput, Project, TableState } from '../shared/types'
@@ -38,6 +39,8 @@ export const api = {
   updateHarness: (id: string, input: HarnessInput) => request<Harness>(`/api/harnesses/${id}`, 'PUT', input),
   deleteHarness: (id: string) => request<void>(`/api/harnesses/${id}`, 'DELETE', {}),
   prepareHarness: (id: string) => request<Prepared>(`/api/harnesses/${id}/prepare`, 'POST', {}),
+  getUsage: (days: number, project?: string) =>
+    request<UsageReport>(`/api/usage?days=${days}${project ? `&project=${encodeURIComponent(project)}` : ''}`),
   listActivity: () => request<Activity[]>('/api/activity'),
   removeProject: (id: string) => request<void>(`/api/projects/${id}`, 'DELETE', {}),
 }

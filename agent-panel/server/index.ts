@@ -19,6 +19,7 @@ import {
 } from './store'
 import { createItem, deleteItem, listVersions, readVersion, restoreVersion, updateItem } from './editor'
 import { createHarness, listHarnesses, prepareHarness, removeHarness, updateHarness } from './harness'
+import { buildUsage } from './usage'
 import { listDiscovered } from './discovery'
 import { buildInventory } from './inventory'
 import { readTable, saveTable } from './table'
@@ -121,6 +122,12 @@ app.delete('/api/harnesses/:id', async (c) => {
 
 // Grava os arquivos do harness em ~/.config/orbita/harnesses/<id>/ e devolve o comando de lançamento.
 app.post('/api/harnesses/:id/prepare', async (c) => c.json(await prepareHarness(c.req.param('id'))))
+
+app.get('/api/usage', async (c) => {
+  const days = Number(c.req.query('days') ?? 30)
+  if (!Number.isFinite(days) || days < 0 || days > 3650) throw new HTTPException(400, { message: 'Período inválido' })
+  return c.json(await buildUsage(days, c.req.query('project') || undefined))
+})
 
 app.get('/api/activity', async (c) => c.json(await listActivity()))
 

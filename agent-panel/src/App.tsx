@@ -1,6 +1,7 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GLOBAL_SCOPE, TABLE_SEATS, type Activity, type Agent, type AgentInput, type Project } from '../shared/types'
 import type { DiscoveredProject, EditableKind, Item, ItemInput, ItemKind } from '../shared/inventory'
+import { UsageView } from './components/usage/UsageView'
 import { HarnessView } from './components/harness/HarnessView'
 import { api } from './api'
 import { AgentCard } from './components/AgentCard'
@@ -39,7 +40,7 @@ const initialView = (): View => {
 
 const initialSection = (): SectionId => {
   const stored = localStorage.getItem('orbita-section')
-  return ['harness', 'skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as SectionId) : 'agent'
+  return ['harness', 'usage', 'skill', 'command', 'hook', 'mcp', 'plugin', 'rule'].includes(stored ?? '') ? (stored as SectionId) : 'agent'
 }
 
 const initialTheme = (): Theme => {
@@ -276,6 +277,8 @@ export default function App() {
   const scopeLabel = scope === ALL_SCOPE ? 'Todos os escopos' : scopes.find((s) => s.id === scope)?.label ?? ''
   const isAgents = section === 'agent'
   const isHarness = section === 'harness'
+  const isUsage = section === 'usage'
+  const usageProject = projects.find((p) => p.id === scope)?.path
   const title = isAgents
     ? scope === ALL_SCOPE
       ? 'Todos os agentes'
@@ -306,6 +309,8 @@ export default function App() {
             <p className="subtitle">
               {isHarness
                 ? 'Perfis de sessão do Claude Code: gera o comando de lançamento sem alterar seus arquivos'
+                : isUsage
+                ? 'Tokens e custos lidos dos transcripts do Claude Code (somente leitura)'
                 : isAgents
                 ? `${stats.active} de ${stats.total} ativos em ${stats.projects + 1} escopos`
                 : `${sectionItems.filter((i) => i.enabled).length} de ${sectionItems.length} ativos · ${scopeLabel}`}
@@ -343,7 +348,7 @@ export default function App() {
           </div>
         </header>
 
-        {!isHarness && (
+        {!isHarness && !isUsage && (
         <div className="toolbar">
           <label className="search">
             <SearchIcon />
@@ -385,6 +390,8 @@ export default function App() {
 
         {loading ? (
           <div className="empty">Carregando...</div>
+        ) : isUsage ? (
+          <UsageView projectPath={usageProject} scopeLabel={usageProject ? scopeLabel : 'Todos os projetos'} />
         ) : isHarness ? (
           <HarnessView projects={projects} run={run} onChanged={() => setInventoryTick((n) => n + 1)} />
         ) : !isAgents ? (
