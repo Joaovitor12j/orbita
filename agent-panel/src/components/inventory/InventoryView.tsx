@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Item } from '../../../shared/inventory'
+import { GroupDrawer } from './GroupDrawer'
 import { sectionOf, type Section } from './meta'
 
 interface Props {
@@ -11,9 +12,27 @@ interface Props {
 
 const ALL = ''
 
+interface Row {
+  key: string
+  items: Item[]
+}
+
+// MCPs repetidos (o mesmo servidor vindo de plugins e conectores) viram uma linha só.
+const groupRows = (items: Item[], group: boolean): Row[] => {
+  if (!group) return items.map((item) => ({ key: item.id, items: [item] }))
+  const map = new Map<string, Item[]>()
+  for (const item of items) {
+    const key = item.name.toLowerCase()
+    map.set(key, [...(map.get(key) ?? []), item])
+  }
+  return [...map.entries()].map(([key, members]) => ({ key, items: members }))
+}
+
 export function InventoryView({ section, items, query, onOpen }: Props) {
   const [origin, setOrigin] = useState(ALL)
   const [state, setState] = useState<'all' | 'active' | 'off'>('all')
+  const [openGroup, setOpenGroup] = useState<Row | null>(null)
+  const grouped = section.kind === 'mcp'
 
   const origins = useMemo(() => [...new Set(items.map((i) => i.origin))].sort((a, b) => a.localeCompare(b)), [items])
 
@@ -26,6 +45,8 @@ export function InventoryView({ section, items, query, onOpen }: Props) {
       return !term || [item.name, item.description, item.origin].some((t) => t.toLowerCase().includes(term))
     })
   }, [items, origin, state, query])
+
+  const rows = useMemo(() => groupRows(visible, grouped), [visible, grouped])
 
   if (!items.length) return <div className="empty">{section.empty}</div>
 
@@ -54,7 +75,9 @@ export function InventoryView({ section, items, query, onOpen }: Props) {
           ))}
         </select>
         <span className="inv-count">
-          {visible.length} de {items.length} {sectionOf(section.kind).label.toLowerCase()}
+          {grouped && rows.length !== visible.length
+            ? `${rows.length} servidores (${visible.length} declarações)`
+            : `${visible.length} de ${items.length} ${sectionOf(section.kind).label.toLowerCase()}`}
         </span>
       </div>
 
@@ -62,27 +85,43 @@ export function InventoryView({ section, items, query, onOpen }: Props) {
         <div className="empty">Nada corresponde aos filtros.</div>
       ) : (
         <ul className="inv-list">
-          {visible.map((item) => (
-            <li key={item.id}>
-              <button className={`inv-row ${item.enabled ? '' : 'off'} ${item.shadowedBy ? 'shadowed' : ''}`} onClick={() => onOpen(item)}>
-                <span className={`inv-dot ${item.enabled ? 'on' : ''}`} aria-hidden />
-                <span className="inv-main">
-                  <span className="inv-name">{item.name}</span>
-                  <span className="inv-desc">{item.description || 'Sem descrição'}</span>
-                </span>
-                <span className="inv-badges">
-                  {item.shadowedBy && <span className="badge warn">sobrescrito</span>}
-                  {item.warnings?.length ? <span className="badge warn">{item.warnings.length} aviso{item.warnings.length > 1 ? 's' : ''}</span> : null}
-                  {!item.enabled && <span className="badge off">desligado</span>}
-                  {item.kind === 'mcp' && <span className="badge scope-badge">{String(item.meta.type)}</span>}
-                  {item.kind === 'plugin' && /^\d/.test(String(item.meta.version ?? '')) ? <span className="badge scope-badge">v{String(item.meta.version)}</span> : null}
-                  <span className="badge scope-badge">{item.origin}</span>
-                </span>
-              </button>
-            </li>
-          ))}
+          {rows.map((row) => {
+            const first = row.items.find((i) => i.description && i.meta.type !== 'connector') ?? row.items[0]!
+            const many = row.items.length > 1
+            const off = row.items.filter((i) => !i.enabled).length
+            const warned = row.items.filter((i) => i.warnings?.length).length
+            const origins = [...new Set(row.items.map((i) => i.origin))]
+            return (
+              <li key={row.key}>
+                <button
+                  className={`inv-row ${off === row.items.length ? 'off' : ''} ${!many && first.shadowedBy ? 'shadowed' : ''}`}
+                  onClick={() => (many ? setOpenGroup(row) : onOpen(first))}
+                >
+                  <span className={`inv-dot ${off < row.items.length ? 'on' : ''}`} aria-hidden />
+                  <span className="inv-main">
+                    <span className="inv-name">{first.name}</span>
+                    <span className="inv-desc">{first.description || 'Sem descrição'}</span>
+                  </span>
+                  <span className="inv-badges">
+                    {!many && first.shadowedBy && <span className="badge warn">sobrescrito</span>}
+                    {warned > 0 && <span className="badge warn">{many ? `${warned} de ${row.items.length} com aviso` : `${first.warnings!.length} aviso${first.warnings!.length > 1 ? 's' : ''}`}</span>}
+                    {off > 0 && <span className="badge off">{many && off < row.items.length ? `${off} desligado${off > 1 ? 's' : ''}` : 'desligado'}</span>}
+                    {!many && first.kind === 'mcp' && <span className="badge scope-badge">{String(first.meta.type)}</span>}
+                    {!many && first.kind === 'plugin' && /^\d/.test(String(first.meta.version ?? '')) ? <span className="badge scope-badge">v{String(first.meta.version)}</span> : null}
+                    {origins.slice(0, 3).map((o) => (
+                      <span key={o} className="badge scope-badge">
+                        {o}
+                      </span>
+                    ))}
+                    {origins.length > 3 && <span className="badge scope-badge">+{origins.length - 3}</span>}
+                  </span>
+                </button>
+              </li>
+            )
+          })}
         </ul>
       )}
+      {openGroup && <GroupDrawer name={openGroup.items[0]!.name} items={openGroup.items} onOpen={onOpen} onClose={() => setOpenGroup(null)} />}
     </section>
   )
 }
