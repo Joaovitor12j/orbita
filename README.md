@@ -105,3 +105,7 @@ Encontrou uma falha? Abra uma *issue* sem detalhes sensíveis ou, se for grave, 
 Projeto pessoal em evolução (versão 0.x). Instalar e remover plugins e iniciar ou parar sessões ainda não são suportados: hoje o Órbita mostra os comandos para você executar.
 
 Comandos úteis: `npm run typecheck` (checagem de tipos) e `npm run build` (typecheck + build).
+
+## Licença
+
+[MIT](LICENSE) © 2026 João Vitor.
