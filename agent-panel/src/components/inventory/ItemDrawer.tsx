@@ -7,6 +7,7 @@ interface Props {
   item: Item
   all: Item[]
   onClose: () => void
+  onEdit?: (item: Item) => void
 }
 
 const BODY_LIMIT = 20_000
@@ -41,7 +42,7 @@ function renderValue(value: unknown): ReactNode {
 const isEmpty = (v: unknown) =>
   v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v as object).length)
 
-export function ItemDrawer({ item, all, onClose }: Props) {
+export function ItemDrawer({ item, all, onClose, onEdit }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
     window.addEventListener('keydown', onKey)
@@ -60,9 +61,16 @@ export function ItemDrawer({ item, all, onClose }: Props) {
             <h2>{item.name}</h2>
             <p className="path">{item.path}</p>
           </div>
-          <button className="icon-btn" onClick={onClose} aria-label="Fechar">
-            <CloseIcon />
-          </button>
+          <div className="head-actions">
+            {item.editable && onEdit && (
+              <button className="btn ghost" onClick={() => onEdit(item)}>
+                Editar
+              </button>
+            )}
+            <button className="icon-btn" onClick={onClose} aria-label="Fechar">
+              <CloseIcon />
+            </button>
+          </div>
         </header>
 
         <div className="drawer-body">

@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Hono } from 'hono'
 import { HTTPException } from 'hono/http-exception'
+import type { ItemInput } from '../shared/inventory'
 import type { AgentInput, TableState } from '../shared/types'
 import { listActivity } from './activity'
 import {
@@ -15,6 +16,7 @@ import {
   toggleAgent,
   updateAgent,
 } from './store'
+import { createItem, deleteItem, listVersions, readVersion, restoreVersion, updateItem } from './editor'
 import { listDiscovered } from './discovery'
 import { buildInventory } from './inventory'
 import { readTable, saveTable } from './table'
@@ -77,6 +79,32 @@ app.get('/api/table', async (c) => c.json(await readTable()))
 app.put('/api/table', async (c) => c.json(await saveTable(await c.req.json<TableState>())))
 
 app.get('/api/inventory', async (c) => c.json(await buildInventory(c.req.query('project'))))
+
+const queryPath = (c: { req: { query: (k: string) => string | undefined } }) => {
+  const file = c.req.query('path')
+  if (!file) throw new HTTPException(400, { message: 'Informe o caminho do arquivo' })
+  return file
+}
+
+app.post('/api/items', async (c) => c.json(await createItem(await c.req.json<ItemInput>()), 201))
+
+app.put('/api/items', async (c) => c.json(await updateItem(queryPath(c), await c.req.json<ItemInput>())))
+
+app.delete('/api/items', async (c) => {
+  await deleteItem(queryPath(c))
+  return c.body(null, 204)
+})
+
+app.get('/api/items/history', async (c) => c.json(await listVersions(queryPath(c))))
+
+app.get('/api/items/history/:version', async (c) =>
+  c.json({ content: await readVersion(queryPath(c), c.req.param('version')) }),
+)
+
+app.post('/api/items/restore', async (c) => {
+  const { path, version } = await c.req.json<{ path: string; version: string }>()
+  return c.json(await restoreVersion(path, version))
+})
 
 app.get('/api/activity', async (c) => c.json(await listActivity()))
 

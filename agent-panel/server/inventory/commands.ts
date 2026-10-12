@@ -31,6 +31,7 @@ export async function readCommands(roots: DirRoot[]): Promise<Item[]> {
       const files = await markdownFiles(root.dir)
       return Promise.all(
         files.map(async ({ file, rel }): Promise<Item> => {
+          const stat = await fs.stat(file).catch(() => null)
           const raw = await fs.readFile(file, 'utf8').catch(() => '')
           const { meta, prompt } = parseAgentFile(raw)
           const description = typeof meta.description === 'string' ? meta.description : ''
@@ -44,8 +45,9 @@ export async function readCommands(roots: DirRoot[]): Promise<Item[]> {
             origin: root.origin,
             path: file,
             enabled: true,
+            editable: root.source === 'user' || root.source === 'project',
             ...(warnings.length ? { warnings } : {}),
-            meta: { ...meta, body: prompt },
+            meta: { ...meta, body: prompt, mtime: stat?.mtimeMs },
           }
         }),
       )

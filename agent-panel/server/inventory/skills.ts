@@ -33,6 +33,7 @@ export interface SkillRoot {
 
 async function readSkill(file: string, root: SkillRoot): Promise<Item> {
   const warnings: string[] = []
+  const stat = await fs.stat(file).catch(() => null)
   const raw = await fs.readFile(file, 'utf8').catch(() => {
     warnings.push('Não foi possível ler o arquivo')
     return ''
@@ -55,8 +56,9 @@ async function readSkill(file: string, root: SkillRoot): Promise<Item> {
     origin: root.origin,
     path: file,
     enabled: true,
+    editable: root.source === 'user' || root.source === 'project',
     ...(warnings.length ? { warnings } : {}),
-    meta: { ...rest, bytes: Buffer.byteLength(raw), body: prompt },
+    meta: { ...rest, bytes: Buffer.byteLength(raw), body: prompt, mtime: stat?.mtimeMs },
   }
 }
 

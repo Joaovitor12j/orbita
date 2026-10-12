@@ -1,4 +1,4 @@
-import type { DiscoveredProject, Inventory } from '../shared/inventory'
+import type { DiscoveredProject, Inventory, ItemInput, ItemVersion } from '../shared/inventory'
 import type { Activity, Agent, AgentInput, Project, TableState } from '../shared/types'
 
 async function request<T>(url: string, method = 'GET', body?: unknown): Promise<T> {
@@ -27,6 +27,11 @@ export const api = {
   saveTable: (table: TableState) => request<TableState>('/api/table', 'PUT', table),
   listDiscovered: () => request<DiscoveredProject[]>('/api/projects/discovered'),
   getInventory: (project?: string) => request<Inventory>(`/api/inventory${project ? `?project=${encodeURIComponent(project)}` : ''}`),
+  createItem: (input: ItemInput) => request<{ path: string; mtime: number }>('/api/items', 'POST', input),
+  updateItem: (path: string, input: ItemInput) => request<{ path: string; mtime: number }>(`/api/items?path=${encodeURIComponent(path)}`, 'PUT', input),
+  deleteItem: (path: string) => request<void>(`/api/items?path=${encodeURIComponent(path)}`, 'DELETE', {}),
+  listVersions: (path: string) => request<ItemVersion[]>(`/api/items/history?path=${encodeURIComponent(path)}`),
+  restoreVersion: (path: string, version: string) => request<{ path: string; mtime: number }>('/api/items/restore', 'POST', { path, version }),
   listActivity: () => request<Activity[]>('/api/activity'),
   removeProject: (id: string) => request<void>(`/api/projects/${id}`, 'DELETE', {}),
 }

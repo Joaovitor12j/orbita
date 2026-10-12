@@ -47,7 +47,7 @@ export const META_LABELS: Record<string, string> = {
 }
 
 // Não aparecem na lista de propriedades (o corpo tem área própria).
-export const HIDDEN_META = new Set(['body', 'agentId', 'plugin'])
+export const HIDDEN_META = new Set(['body', 'agentId', 'plugin', 'mtime'])
 
 // Valores de metadados que são códigos internos, exibidos em português.
 export const META_VALUES: Record<string, Record<string, string>> = {

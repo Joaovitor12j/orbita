@@ -1,6 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GLOBAL_SCOPE, TABLE_SEATS, type Activity, type Agent, type AgentInput, type Project } from '../shared/types'
-import type { DiscoveredProject, Item, ItemKind } from '../shared/inventory'
+import type { DiscoveredProject, EditableKind, Item, ItemInput, ItemKind } from '../shared/inventory'
 import { api } from './api'
 import { AgentCard } from './components/AgentCard'
 import { AgentDrawer, type ScopeOption } from './components/AgentDrawer'
@@ -9,6 +9,7 @@ import { PlusIcon, SearchIcon } from './components/Icons'
 import { ALL_SCOPE, Sidebar } from './components/Sidebar'
 import { InventoryView } from './components/inventory/InventoryView'
 import { ItemDrawer } from './components/inventory/ItemDrawer'
+import { ItemEditor } from './components/inventory/ItemEditor'
 import { sectionOf } from './components/inventory/meta'
 import { MODELS } from './constants'
 
@@ -60,6 +61,8 @@ export default function App() {
   const [section, setSection] = useState<ItemKind>(initialSection)
   const [inventory, setInventory] = useState<Item[]>([])
   const [openItem, setOpenItem] = useState<Item | null>(null)
+  const [editor, setEditor] = useState<{ kind: EditableKind; item: Item | null } | null>(null)
+  const [inventoryTick, setInventoryTick] = useState(0)
   const [seats, setSeats] = useState<(string | null)[]>(() => Array<string | null>(TABLE_SEATS).fill(null))
   const [activity, setActivity] = useState<Activity[]>([])
   const [theme, setTheme] = useState<Theme>(initialTheme)
@@ -126,7 +129,7 @@ export default function App() {
     return () => {
       alive = false
     }
-  }, [scope, agents])
+  }, [scope, agents, inventoryTick])
 
   useEffect(() => {
     localStorage.setItem('orbita-section', section)
@@ -219,6 +222,32 @@ export default function App() {
     setSeats(saved ? saved.seats : previous)
   }
 
+  const afterItemChange = () => {
+    setEditor(null)
+    setOpenItem(null)
+    setInventoryTick((n) => n + 1)
+  }
+
+  const handleItemSave = async (input: ItemInput, path?: string) => {
+    const done = await run(
+      () => (path ? api.updateItem(path, input) : api.createItem(input)),
+      path ? 'Alterações salvas' : `${input.kind === 'skill' ? 'Skill' : 'Comando'} criado`,
+    )
+    if (done) afterItemChange()
+    return Boolean(done)
+  }
+
+  const handleItemDelete = async (item: Item) => {
+    const done = await run(() => api.deleteItem(item.path).then(() => true), item.kind === 'skill' ? 'Skill excluída' : 'Comando excluído')
+    if (done) afterItemChange()
+  }
+
+  const handleItemRestore = async (path: string, version: string) => {
+    if (!window.confirm('Restaurar esta versão? A versão atual fica guardada no histórico.')) return
+    const done = await run(() => api.restoreVersion(path, version), 'Versão restaurada')
+    if (done) afterItemChange()
+  }
+
   const handleAddProject = async (path: string) => {
     const project = await run(() => api.addProject(path), 'Projeto registrado')
     if (!project) return
@@ -297,6 +326,11 @@ export default function App() {
             {isAgents && (
               <button className="btn primary" onClick={() => setSelected('new')}>
                 <PlusIcon /> Novo agente
+              </button>
+            )}
+            {(section === 'skill' || section === 'command') && (
+              <button className="btn primary" onClick={() => setEditor({ kind: section, item: null })}>
+                <PlusIcon /> {section === 'skill' ? 'Nova skill' : 'Novo comando'}
               </button>
             )}
           </div>
@@ -398,7 +432,31 @@ export default function App() {
         )}
       </main>
 
-      {openItem && <ItemDrawer item={openItem} all={inventory} onClose={() => setOpenItem(null)} />}
+      {openItem && (
+        <ItemDrawer
+          item={openItem}
+          all={inventory}
+          onClose={() => setOpenItem(null)}
+          onEdit={(item) => {
+            setOpenItem(null)
+            setEditor({ kind: item.kind as EditableKind, item })
+          }}
+        />
+      )}
+
+      {editor && (
+        <ItemEditor
+          key={editor.item ? `${editor.item.id}:${String(editor.item.meta.mtime)}` : `new-${editor.kind}`}
+          kind={editor.kind}
+          item={editor.item}
+          scopes={scopes}
+          defaultScope={scope === ALL_SCOPE ? GLOBAL_SCOPE : scope}
+          onSave={handleItemSave}
+          onDelete={handleItemDelete}
+          onRestore={handleItemRestore}
+          onClose={() => setEditor(null)}
+        />
+      )}
 
       {selected && isAgents && (
         <AgentDrawer
