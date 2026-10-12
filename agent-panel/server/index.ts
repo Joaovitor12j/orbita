@@ -34,7 +34,20 @@ const ALLOWED_ORIGINS = new Set([
   'http://localhost:5173',
 ])
 
+const ALLOWED_HOSTS = new Set([...ALLOWED_ORIGINS].map((o) => o.replace('http://', '')))
+
 const app = new Hono()
+
+// Só atende pelo endereço local. Sem isso, uma página externa que aponte um domínio para 127.0.0.1
+// (DNS rebinding) leria a API como se fosse a mesma origem, já que GETs não carregam o header Origin.
+app.use('*', async (c, next) => {
+  if (!ALLOWED_HOSTS.has(c.req.header('host') ?? '')) return c.json({ error: 'Host não permitido' }, 403)
+  await next()
+  c.header('X-Frame-Options', 'DENY')
+  c.header('Content-Security-Policy', "frame-ancestors 'none'")
+  c.header('X-Content-Type-Options', 'nosniff')
+  c.header('Referrer-Policy', 'no-referrer')
+})
 
 app.use('/api/*', async (c, next) => {
   const origin = c.req.header('origin')
