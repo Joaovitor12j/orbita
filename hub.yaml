@@ -1,0 +1,12 @@
+esquema: 1
+nome: Órbita
+resumo: Painel local para ver e controlar agentes, skills, hooks, MCPs e consumo do Claude Code.
+descricao: A configuração do Claude Code fica espalhada em ~/.claude, nas pastas de cada projeto e nos plugins instalados. O Órbita lê tudo isso, mostra num painel só e permite editar o que é seguro editar. Roda somente na máquina do usuário.
+status: construindo
+visibilidade: publico
+tecnologias: [TypeScript, Node.js, three.js]
+ordem: 1
+forma: planeta
+arquitetura:
+  texto: Tudo roda local, escutando só em 127.0.0.1.
+  fluxo: [Configuração do Claude Code, Leitura local, Painel]
